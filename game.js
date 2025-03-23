@@ -1097,61 +1097,63 @@ const ColorFlood = () => {
     
     return (
       <div className="color-buttons-container">
-        {/* Color buttons */}
         <div className="color-buttons">
-          {gameColors.map((color, index) => {
-            // Check if color is on grid
-            const isOnGrid = colorsOnGrid.has(color);
-            // Default to enabled if we couldn't compute colors on grid
-            const isDisabled = 
-              gameState !== 'playing' || 
-              (color === activeColor && activePowerup !== 'prism') || 
-              (colorsOnGrid.size > 0 && !isOnGrid && activePowerup !== 'prism');
-            
-            return (
-              <div key={index} className="button-wrapper">
-                {previewMultiplier && color === previewColor && previewArea.length > 0 && (
-                  <div className="multiplier-indicator">
-                    {previewMultiplier}x
-                  </div>
-                )}
-                <button
-                  className={`color-button ${color === activeColor ? 'active' : ''} ${color === previewColor ? 'previewing' : ''} ${color === prismPreviewColor ? 'prism-target' : ''}`}
-                  style={{ 
-                    backgroundColor: color,
-                    width: `${buttonSize}px`,
-                    height: `${buttonSize}px`
-                  }}
-                  onClick={() => handleColorClick(color)}
-                  onMouseEnter={() => {
-                    if (activePowerup === 'prism') {
-                      calculatePrismPreview(color);
-                    } else {
-                      calculatePreviewArea(color);
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    if (activePowerup === 'prism') {
-                      setPrismPreviewColor(null);
-                    } else {
-                      setPreviewArea([]);
-                      setPreviewColor(null);
-                      setPreviewMultiplier(null);
-                    }
-                  }}
-                  disabled={isDisabled}
-                />
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Powerup buttons in separate row */}
-        {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
-          <div className="powerup-buttons-container">
-            {renderPowerupButtons()}
+          {/* Color buttons row */}
+          <div className="color-buttons-row">
+            {gameColors.map((color, index) => {
+              // Check if color is on grid
+              const isOnGrid = colorsOnGrid.has(color);
+              // Default to enabled if we couldn't compute colors on grid
+              const isDisabled = 
+                gameState !== 'playing' || 
+                (color === activeColor && activePowerup !== 'prism') || 
+                (colorsOnGrid.size > 0 && !isOnGrid && activePowerup !== 'prism');
+              
+              return (
+                <div key={index} className="button-wrapper">
+                  {previewMultiplier && color === previewColor && previewArea.length > 0 && (
+                    <div className="multiplier-indicator">
+                      {previewMultiplier}x
+                    </div>
+                  )}
+                  <button
+                    className={`color-button ${color === activeColor ? 'active' : ''} ${color === previewColor ? 'previewing' : ''} ${color === prismPreviewColor ? 'prism-target' : ''}`}
+                    style={{ 
+                      backgroundColor: color,
+                      width: `${buttonSize}px`,
+                      height: `${buttonSize}px`
+                    }}
+                    onClick={() => handleColorClick(color)}
+                    onMouseEnter={() => {
+                      if (activePowerup === 'prism') {
+                        calculatePrismPreview(color);
+                      } else {
+                        calculatePreviewArea(color);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (activePowerup === 'prism') {
+                        setPrismPreviewColor(null);
+                      } else {
+                        setPreviewArea([]);
+                        setPreviewColor(null);
+                        setPreviewMultiplier(null);
+                      }
+                    }}
+                    disabled={isDisabled}
+                  />
+                </div>
+              );
+            })}
           </div>
-        )}
+          
+          {/* Powerup buttons row */}
+          {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
+            <div className="powerup-buttons-row">
+              {renderPowerupButtons()}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
