@@ -315,21 +315,16 @@ const ColorFlood = () => {
 
   // Effect to initialize grid when needed - separate from color/palette changes
   useEffect(() => {
-    // Only initialize if grid is empty or level changes
+    // Only initialize if:
+    // 1. We have colors to use
+    // 2. AND either: 
+    //    a. The grid is empty (first time) OR
+    //    b. We're changing levels and need a new grid
     if (gameColors.length > 0 && 
-        (grid.length === 0 || 
-         (grid[0] && grid[0][0] && 
-          gameColors.indexOf(grid[0][0]) === -1))) {
+        (grid.length === 0 || gameState === 'transitioning')) {
       initializeGrid();
     }
-  }, [level, gameColors.length]);
-  
-  // Separate effect for initial load
-  useEffect(() => {
-    if (gameColors.length > 0 && grid.length === 0) {
-      initializeGrid();
-    }
-  }, []);
+  }, [level, gameColors.length, gameState]);
 
   // Function to check which colors are present on the grid
   const getColorsOnGrid = () => {
@@ -448,13 +443,25 @@ const ColorFlood = () => {
       setCoins(prev => prev + 1);
     }
     
+    // Temporarily set the game state to "transitioning" to prevent win check
+    setGameState('transitioning');
+    
+    // Increment the level
     setLevel(prev => prev + 1);
     
-    // Score carries over between levels
-    // But history is reset
-    setBoardHistory([]);
-    setActiveAreaHistory([]);
-    setScoreHistory([]);
+    // Force a grid re-initialization for the new level
+    setTimeout(() => {
+      // Reset history
+      setBoardHistory([]);
+      setActiveAreaHistory([]);
+      setScoreHistory([]);
+      
+      // Always initialize a new grid for a new level
+      initializeGrid();
+      
+      // Explicitly set game state to playing
+      setGameState('playing');
+    }, 10);
   };
 
   // Cycle through color palettes
@@ -1332,7 +1339,7 @@ const ColorFlood = () => {
     return (
       <>
         {/* Game Over Modal */}
-        {gameState !== 'playing' && (
+        {(gameState === 'won' || gameState === 'lost') && (
           <div className="modal-overlay">
             <div className="modal">
               <h2>{gameState === 'won' ? 'LEVEL COMPLETE!' : 'GAME OVER'}</h2>
