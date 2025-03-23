@@ -373,7 +373,7 @@ body {
 }
 
 .mobile .color-buttons {
-  padding: 10px;
+  padding: 6px;
   width: 95%;
 }
 
@@ -400,8 +400,8 @@ body {
 }
 
 .mobile .powerup-buttons-row {
-  margin-bottom: 10px;
-  padding-bottom: 10px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
 }
 
 /* BUTTON WRAPPER */
@@ -528,9 +528,10 @@ body {
   justify-content: center;
 }
 
+.mobile .color-button,
 .mobile .powerup-button {
   border-width: 2px;
-  transform: scale(0.9);
+  transform: scale(0.85);
 }
 
 .powerup-button:hover {
@@ -869,8 +870,9 @@ body {
 }
 
 .mobile .controls-group {
-  width: 150px;
-  gap: 8px;
+  width: 170px;
+  justify-content: space-between;
+  margin: 0 auto;
 }
 
 .theme-toggle {
@@ -888,8 +890,9 @@ body {
 }
 
 .mobile .theme-toggle {
-  font-size: 12px;
-  padding: 4px 8px;
+  flex: 1;
+  text-align: center;
+  padding: 4px 6px;
 }
 
 .dark-mode .theme-toggle {
