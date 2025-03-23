@@ -1,107 +1,4 @@
-// Function to check which colors are present on the grid
-  const getColorsOnGrid = () => {
-    const colorsPresent = new Set();
-    
-    for (let row = 0; row < GRID_SIZE; row++) {
-      for (let col = 0; col < GRID_SIZE; col++) {
-        colorsPresent.add(grid[row][col]);
-      }
-    }
-    
-    return colorsPresent;
-  };  // iOS-compatible volume change function
-  // const setAudioVolume = (volumeLevel) => {
-  //   setVolume(volumeLevel);
-    
-  //   try {
-  //     if (audioRef.current) {
-  //       // Direct volume set attempt
-  //       audioRef.current.volume = volumeLevel / 100;
-        
-  //       // Special handling for iOS
-  //       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  //       if (isIOS && !isMuted && audioInitialized) {
-  //         // Save current state
-  //         const currentTime = audioRef.current.currentTime;
-  //         const currentTrackIndex = currentTrack;
-  //         const wasPlaying = !audioRef.current.paused;
-          
-  //         // Create a new audio element with desired volume
-  //         const newAudio = new Audio();
-  //         newAudio.src = MUSIC_TRACKS[currentTrackIndex].file;
-  //         newAudio.volume = volumeLevel / 100;
-          
-  //         // Copy event listeners
-  //         newAudio.addEventListener('ended', playNextTrack);
-  //         newAudio.addEventListener('error', (e) => {
-  //           console.error('Audio error:', e);
-  //         });
-          
-  //         // Stop old audio
-  //         audioRef.current.pause();
-          
-  //         // Replace audio reference
-  //         audioRef.current = newAudio;
-          
-  //         // Set position and play if needed
-  //         if (wasPlaying) {
-  //           audioRef.current.currentTime = currentTime;
-  //           const playPromise = audioRef.current.play();
-  //           if (playPromise) {
-  //             playPromise.catch(err => {
-  //               console.error('Error resuming after volume change:', err);
-  //             });
-  //           }
-  //         }
-  //       }
-  //     }
-  //   } catch (e) {
-  //     console.error('Error setting volume:', e);
-  //   }
-  // };  // Track skipping function (completely rewritten for mobile compatibility)
-  const handleTrackSkip = () => {
-    if (!isMuted && audioRef.current) {
-      try {
-        // Stop current playback
-        audioRef.current.pause();
-        
-        // Calculate the next track index
-        const nextTrack = (currentTrack + 1) % MUSIC_TRACKS.length;
-        
-        // Update UI immediately
-        setCurrentTrack(nextTrack);
-        setNowPlaying(MUSIC_TRACKS[nextTrack].name);
-        
-        // Create a completely new Audio element
-        const newAudio = new Audio();
-        newAudio.src = MUSIC_TRACKS[nextTrack].file;
-        newAudio.volume = volume / 100;
-        
-        // Copy over event listeners
-        if (audioRef.current) {
-          newAudio.addEventListener('ended', playNextTrack);
-          newAudio.addEventListener('error', (e) => {
-            console.error('Audio error:', e);
-          });
-        }
-        
-        // Replace the old audio element
-        audioRef.current = newAudio;
-        
-        // Play the new audio (with a slight delay to ensure it loads)
-        setTimeout(() => {
-          const playPromise = audioRef.current.play();
-          if (playPromise) {
-            playPromise.catch(err => {
-              console.error('Error playing after skip:', err);
-            });
-          }
-        }, 100);
-      } catch (err) {
-        console.error('Error in track skip:', err);
-      }
-    }
-  };const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef } = React;
 
 const ColorFlood = () => {
   // Game constants
@@ -208,13 +105,9 @@ const ColorFlood = () => {
   // Setup audio system
   const setupAudio = () => {
     if (!audioRef.current) {
-      // Create audio element
       audioRef.current = new Audio();
       audioRef.current.src = MUSIC_TRACKS[currentTrack].file;
       audioRef.current.volume = volume / 100;
-      audioRef.current.loop = false; // We'll handle looping manually
-      
-      // Add event listeners
       audioRef.current.addEventListener('ended', playNextTrack);
       
       // Set initial now playing text
@@ -257,6 +150,25 @@ const ColorFlood = () => {
     });
   };
 
+  // Simple track skipping function
+  const handleTrackSkip = () => {
+    if (!isMuted && audioRef.current) {
+      const nextTrack = (currentTrack + 1) % MUSIC_TRACKS.length;
+      setCurrentTrack(nextTrack);
+      
+      try {
+        audioRef.current.src = MUSIC_TRACKS[nextTrack].file;
+        audioRef.current.play().then(() => {
+          setNowPlaying(MUSIC_TRACKS[nextTrack].name);
+        }).catch(e => {
+          console.error("Error playing next track:", e);
+        });
+      } catch (e) {
+        console.error("Track skip error:", e);
+      }
+    }
+  };
+
   // Handle mute toggle
   useEffect(() => {
     if (audioRef.current) {
@@ -287,7 +199,6 @@ const ColorFlood = () => {
   useEffect(() => {
     if (audioRef.current) {
       try {
-        // For all browsers
         audioRef.current.volume = volume / 100;
       } catch (e) {
         console.error("Error setting volume:", e);
@@ -383,7 +294,7 @@ const ColorFlood = () => {
 
   // When level changes, update number of colors with new progression
   useEffect(() => {
-    // Keep moves at 25 for all levels (removed the extra moves at higher levels)
+    // Keep moves at 25 for all levels
     let levelMoves = DEFAULT_MOVES;
     
     // New colour progression: 4th at level 5, 5th at level 10, 6th at level 15
@@ -402,6 +313,22 @@ const ColorFlood = () => {
       initializeGrid();
     }
   }, [gameColors]);
+
+  // Function to check which colors are present on the grid
+  const getColorsOnGrid = () => {
+    // Safe check - return empty Set if grid is not initialized
+    if (!grid || grid.length === 0) return new Set();
+    
+    const colorsPresent = new Set();
+    
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE; col++) {
+        colorsPresent.add(grid[row][col]);
+      }
+    }
+    
+    return colorsPresent;
+  };
 
   // Initialize the grid with random colors
   const initializeGrid = () => {
@@ -1092,20 +1019,27 @@ const ColorFlood = () => {
     const isMobile = window.innerWidth <= 768;
     const buttonSize = isMobile ? 40 : 50;
     
-    // Get the set of colors currently on the grid
-    const colorsOnGrid = getColorsOnGrid();
+    // Get colors on grid (safely)
+    let colorsOnGrid = new Set();
+    try {
+      if (grid && grid.length > 0) {
+        colorsOnGrid = getColorsOnGrid();
+      }
+    } catch (e) {
+      console.error("Error getting colors on grid:", e);
+    }
     
     return (
       <div className="color-buttons-container">
         <div className="color-buttons">
           {gameColors.map((color, index) => {
-            // Check if this color is present on the grid
+            // Check if color is on grid
             const isOnGrid = colorsOnGrid.has(color);
-            // Disable button if color is not on grid (unless using prism)
+            // Default to enabled if we couldn't compute colors on grid
             const isDisabled = 
               gameState !== 'playing' || 
               (color === activeColor && activePowerup !== 'prism') || 
-              (!isOnGrid && activePowerup !== 'prism');
+              (colorsOnGrid.size > 0 && !isOnGrid && activePowerup !== 'prism');
             
             return (
               <div key={index} className="button-wrapper">
@@ -1139,7 +1073,6 @@ const ColorFlood = () => {
                     }
                   }}
                   disabled={isDisabled}
-                  title={!isOnGrid && activePowerup !== 'prism' ? "This color is no longer on the grid" : ""}
                 />
               </div>
             );
@@ -1167,14 +1100,14 @@ const ColorFlood = () => {
         {unlockedPowerups.undo && (
           <div className="powerup-wrapper">
             <button
-              className={`powerup-button undo-button ${activePowerup === 'undo' ? 'active' : ''}`}
+              className={`powerup-button undo-button ${activePowerup === 'undo' ? 'active' : ''} ${activePowerup === 'used-powerup' ? 'used' : ''}`}
               style={{ 
                 width: `${buttonSize}px`,
                 height: `${buttonSize}px`
               }}
               onClick={undoLastMove}
-              disabled={gameState !== 'playing' || coins < POWERUP_COSTS.undo || boardHistory.length === 0}
-              title="Undo Last Move (1 Coin)"
+              disabled={gameState !== 'playing' || coins < POWERUP_COSTS.undo || boardHistory.length === 0 || activePowerup === 'undo' || activePowerup === 'used-powerup'}
+              title={activePowerup === 'used-powerup' ? "Cannot undo after using a powerup" : activePowerup === 'undo' ? "Cannot undo twice in a row" : "Undo Last Move (1 Coin)"}
             >
               <span className="powerup-icon">↩</span>
               <span className="powerup-cost">{POWERUP_COSTS.undo}</span>
@@ -1201,7 +1134,7 @@ const ColorFlood = () => {
               onMouseEnter={() => calculateBurstPreview()}
               onMouseLeave={() => setBurstPreviewArea([])}
               disabled={gameState !== 'playing' || coins < POWERUP_COSTS.burst}
-              title="Burst: Expand to Adjacent & Connected Tiles (5 Coins)"
+              title="Burst: Expand to Adjacent & Connected Tiles (1 Coin)"
             >
               <span className="powerup-icon">⭐</span>
               <span className="powerup-cost">{POWERUP_COSTS.burst}</span>
@@ -1220,7 +1153,7 @@ const ColorFlood = () => {
               }}
               onClick={() => togglePowerup('prism')}
               disabled={gameState !== 'playing' || coins < POWERUP_COSTS.prism}
-              title="Prism: Convert All Tiles of a Color (10 Coins)"
+              title="Prism: Convert All Tiles of a Color (1 Coin)"
             >
               <span className="powerup-icon">🔮</span>
               <span className="powerup-cost">{POWERUP_COSTS.prism}</span>
@@ -1303,7 +1236,7 @@ const ColorFlood = () => {
             </span>
           </div>
           
-          <button
+          <button 
             className="audio-toggle" 
             onClick={() => setIsMuted(!isMuted)} 
             title={isMuted ? "Unmute audio" : "Mute audio"}
@@ -1461,10 +1394,10 @@ const ColorFlood = () => {
                         <li>• <strong>Undo (1 coin):</strong> Revert the board to its previous state, restore a move</li>
                       )}
                       {unlockedPowerups.burst && (
-                        <li>• <strong>Burst (5 coins):</strong> Convert all tiles adjacent to the active area AND all connected tiles of the same colour</li>
+                        <li>• <strong>Burst (1 coin):</strong> Convert all tiles adjacent to the active area AND all connected tiles of the same colour</li>
                       )}
                       {unlockedPowerups.prism && (
-                        <li>• <strong>Prism (10 coins):</strong> Convert all tiles of one colour to your active area's colour across the entire board</li>
+                        <li>• <strong>Prism (1 coin):</strong> Convert all tiles of one colour to your active area's colour across the entire board</li>
                       )}
                     </ul>
                     
