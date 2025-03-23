@@ -297,30 +297,39 @@ const ColorFlood = () => {
     // Keep moves at 25 for all levels
     let levelMoves = DEFAULT_MOVES;
     
+    // Only set moves when level changes (not on palette changes)
+    setMovesLeft(levelMoves);
+    
     // New colour progression: 4th at level 5, 5th at level 10, 6th at level 15
     let numColors = 3;
     if (level >= 15) numColors = 6;
     else if (level >= 10) numColors = 5;
     else if (level >= 5) numColors = 4;
     
-    setGameColors(COLORS[colorPalette].slice(0, numColors));
-    setMovesLeft(levelMoves);
+    // Update colors for the current palette
+    const newColors = COLORS[colorPalette].slice(0, numColors);
+    setGameColors(newColors);
+    
+    // On level change, we'll initialize with new grid in another effect
   }, [level, colorPalette]);
 
-  // When colors change, reset the game - but only on level changes, not palette changes
+  // Effect to initialize grid when needed - separate from color/palette changes
   useEffect(() => {
-    if (gameColors.length > 0 && level === 1) {
-      // Initialize for the first time
+    // Only initialize if grid is empty or level changes
+    if (gameColors.length > 0 && 
+        (grid.length === 0 || 
+         (grid[0] && grid[0][0] && 
+          gameColors.indexOf(grid[0][0]) === -1))) {
       initializeGrid();
     }
-  }, [gameColors]);
+  }, [level, gameColors.length]);
   
-  // Separate effect for handling color changes when level changes
+  // Separate effect for initial load
   useEffect(() => {
-    if (gameColors.length > 0 && level > 1) {
+    if (gameColors.length > 0 && grid.length === 0) {
       initializeGrid();
     }
-  }, [level]);
+  }, []);
 
   // Function to check which colors are present on the grid
   const getColorsOnGrid = () => {
@@ -454,41 +463,48 @@ const ColorFlood = () => {
     const currentIndex = palettes.indexOf(colorPalette);
     const nextIndex = (currentIndex + 1) % palettes.length;
     
-    // Apply current colors to the new palette (replace colors but keep the same game state)
+    // Get the new palette name
     const newPalette = palettes[nextIndex];
+    
+    // Preserve move count
+    const currentMoves = movesLeft;
+    
+    // Update palette in state
     setColorPalette(newPalette);
     
-    // Get the same number of colors from the new palette
-    const newColors = COLORS[newPalette].slice(0, gameColors.length);
+    // Update colors with same count
+    const currentColorCount = gameColors.length;
+    const newColors = COLORS[newPalette].slice(0, currentColorCount);
     
-    // Update game colors without triggering grid reset (handled in useEffect)
-    setGameColors(newColors);
-    
-    // Update the grid with new colors
-    updateGridColors(gameColors, newColors);
-  };
-  
-  // Update grid colors without changing the game state
-  const updateGridColors = (oldColors, newColors) => {
-    if (oldColors.length !== newColors.length || grid.length === 0) return;
-    
-    // Create a mapping from old colors to new colors
-    const colorMap = {};
-    for (let i = 0; i < oldColors.length; i++) {
-      colorMap[oldColors[i]] = newColors[i];
+    // Map old colors to new
+    if (grid.length > 0) {
+      const colorMap = {};
+      gameColors.forEach((oldColor, index) => {
+        if (index < newColors.length) {
+          colorMap[oldColor] = newColors[index];
+        }
+      });
+      
+      // Create new grid with mapped colors
+      const newGrid = grid.map(row => 
+        row.map(cellColor => colorMap[cellColor] || cellColor)
+      );
+      
+      // Update active color to match
+      const newActiveColor = colorMap[activeColor] || activeColor;
+      
+      // Update grid and active color without reinitializing
+      setGrid(newGrid);
+      setActiveColor(newActiveColor);
     }
     
-    // Update the grid with new colors
-    const newGrid = grid.map(row => 
-      row.map(cellColor => colorMap[cellColor] || cellColor)
-    );
+    // Set gameColors (but this won't trigger reinitialization)
+    setGameColors(newColors);
     
-    // Update active color
-    const newActiveColor = colorMap[activeColor] || activeColor;
-    
-    // Update the grid and active color
-    setGrid(newGrid);
-    setActiveColor(newActiveColor);
+    // Restore move count (since the level/color effect resets it)
+    setTimeout(() => {
+      setMovesLeft(currentMoves);
+    }, 10);
   };
 
   // Undo the last move
@@ -1074,6 +1090,7 @@ const ColorFlood = () => {
     
     return (
       <div className="color-buttons-container">
+        {/* Color buttons */}
         <div className="color-buttons">
           {gameColors.map((color, index) => {
             // Check if color is on grid
@@ -1120,15 +1137,14 @@ const ColorFlood = () => {
               </div>
             );
           })}
-          
-          {/* Only show separator if we have powerups unlocked */}
-          {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
-            <div className="buttons-separator"></div>
-          )}
-          
-          {/* Powerup buttons */}
-          {renderPowerupButtons()}
         </div>
+        
+        {/* Powerup buttons in separate row */}
+        {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
+          <div className="powerup-buttons-container">
+            {renderPowerupButtons()}
+          </div>
+        )}
       </div>
     );
   };
@@ -1255,40 +1271,9 @@ const ColorFlood = () => {
   // Render controls (theme, audio, info)
   const renderControls = () => {
     return (
-      <div className="controls-container">
-        <div className="controls-group">
-          <button 
-            className="info-button" 
-            onClick={() => setShowInfoModal(true)} 
-            title="Game information"
-          >
-            <span>i</span>
-          </button>
-          
-          <div className="theme-toggle">
-            <span 
-              className={`theme-option ${!darkMode ? 'active' : ''}`}
-              onClick={() => setDarkMode(false)}
-            >
-              Light
-            </span>
-            <span className="theme-separator">|</span>
-            <span 
-              className={`theme-option ${darkMode ? 'active' : ''}`}
-              onClick={() => setDarkMode(true)}
-            >
-              Dark
-            </span>
-          </div>
-          
-          <button 
-            className="audio-toggle" 
-            onClick={() => setIsMuted(!isMuted)} 
-            title={isMuted ? "Unmute audio" : "Mute audio"}
-          >
-            {isMuted ? '🔇' : '🔊'}
-          </button>
-          
+      <>
+        {/* Song name in its own centered row */}
+        <div className="now-playing-container">
           <div 
             className="now-playing" 
             onClick={handleTrackSkip} 
@@ -1298,10 +1283,47 @@ const ColorFlood = () => {
             }} 
             title={!isMuted ? "Click to skip to next track" : ""}
           >
-            {nowPlaying}
+            ♫ {nowPlaying}
           </div>
         </div>
-      </div>
+        
+        {/* Controls centered below */}
+        <div className="controls-container">
+          <div className="controls-group">
+            <button 
+              className="info-button" 
+              onClick={() => setShowInfoModal(true)} 
+              title="Game information"
+            >
+              <span>i</span>
+            </button>
+            
+            <div className="theme-toggle">
+              <span 
+                className={`theme-option ${!darkMode ? 'active' : ''}`}
+                onClick={() => setDarkMode(false)}
+              >
+                Light
+              </span>
+              <span className="theme-separator">|</span>
+              <span 
+                className={`theme-option ${darkMode ? 'active' : ''}`}
+                onClick={() => setDarkMode(true)}
+              >
+                Dark
+              </span>
+            </div>
+            
+            <button 
+              className="audio-toggle" 
+              onClick={() => setIsMuted(!isMuted)} 
+              title={isMuted ? "Unmute audio" : "Mute audio"}
+            >
+              {isMuted ? '🔇' : '🔊'}
+            </button>
+          </div>
+        </div>
+      </>
     );
   };
 
