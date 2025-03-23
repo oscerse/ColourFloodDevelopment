@@ -74,6 +74,7 @@ const ColorFlood = () => {
   const [boardHistory, setBoardHistory] = useState([]); // For undo feature
   const [activeAreaHistory, setActiveAreaHistory] = useState([]); // For undo feature
   const [scoreHistory, setScoreHistory] = useState([]); // For undo feature
+  const [paletteHistory, setPaletteHistory] = useState([]);
   const [burstPreviewArea, setBurstPreviewArea] = useState([]);
   const [prismPreviewColor, setPrismPreviewColor] = useState(null);
   const [prismPreviewAreas, setPrismPreviewAreas] = useState({});
@@ -579,46 +580,75 @@ const ColorFlood = () => {
   };
 
   // Undo the last move
-  const undoLastMove = () => {
-    // Check if we can undo
-    if (boardHistory.length === 0 || 
-        coins < POWERUP_COSTS.undo || 
-        activePowerup === 'undo' || 
-        activePowerup === 'used-powerup') {
-      return;
+const undoLastMove = () => {
+  // Check if we can undo
+  if (boardHistory.length === 0 || 
+      coins < POWERUP_COSTS.undo || 
+      activePowerup === 'undo' || 
+      activePowerup === 'used-powerup') {
+    return;
+  }
+  
+  // Get the previous state - ensure we have a deep copy
+  const prevGrid = JSON.parse(JSON.stringify(boardHistory[boardHistory.length - 1]));
+  const prevActiveArea = JSON.parse(JSON.stringify(activeAreaHistory[activeAreaHistory.length - 1]));
+  const prevScore = scoreHistory[scoreHistory.length - 1];
+  const prevPalette = paletteHistory[paletteHistory.length - 1];
+  
+  // Map previous colors to current palette if palette changed
+  let gridToRestore = prevGrid;
+  if (prevPalette !== colorPalette) {
+    const oldColors = COLORS[prevPalette].slice(0, gameColors.length);
+    const newColors = COLORS[colorPalette].slice(0, gameColors.length);
+    
+    // Map colors from old palette to new palette
+    gridToRestore = prevGrid.map(row => 
+      row.map(cellColor => {
+        const index = oldColors.indexOf(cellColor);
+        return index >= 0 && index < newColors.length ? newColors[index] : cellColor;
+      })
+    );
+  }
+  
+  // Restore the previous state with mapped colors for current palette
+  setGrid(gridToRestore);
+  setActiveArea(prevActiveArea);
+  
+  // Get the color of the active area in the previous state, mapped to current palette
+  if (prevActiveArea.length > 0) {
+    const [row, col] = prevActiveArea[0];
+    const oldActiveColor = prevGrid[row][col];
+    
+    // Map active color if palette changed
+    if (prevPalette !== colorPalette) {
+      const index = COLORS[prevPalette].indexOf(oldActiveColor);
+      if (index >= 0 && index < gameColors.length) {
+        setActiveColor(COLORS[colorPalette][index]);
+      } else {
+        setActiveColor(gridToRestore[row][col]);
+      }
+    } else {
+      setActiveColor(oldActiveColor);
     }
-    
-    // Get the previous state - ensure we have a deep copy
-    const prevGrid = JSON.parse(JSON.stringify(boardHistory[boardHistory.length - 1]));
-    const prevActiveArea = JSON.parse(JSON.stringify(activeAreaHistory[activeAreaHistory.length - 1]));
-    const prevScore = scoreHistory[scoreHistory.length - 1];
-    
-    // Restore the previous state
-    setGrid(prevGrid);
-    setActiveArea(prevActiveArea);
-    
-    // Get the color of the active area in the previous state
-    if (prevActiveArea.length > 0) {
-      const [row, col] = prevActiveArea[0];
-      setActiveColor(prevGrid[row][col]);
-    }
-    
-    setScore(prevScore);
-    
-    // Add back a move
-    setMovesLeft(prev => prev + 1);
-    
-    // Remove from history
-    setBoardHistory(prev => prev.slice(0, -1));
-    setActiveAreaHistory(prev => prev.slice(0, -1));
-    setScoreHistory(prev => prev.slice(0, -1));
-    
-    // Deduct coins
-    setCoins(prev => prev - POWERUP_COSTS.undo);
-    
-    // Set powerup state to 'undo' to prevent chaining
-    setActivePowerup('undo');
-  };
+  }
+  
+  setScore(prevScore);
+  
+  // Add back a move
+  setMovesLeft(prev => prev + 1);
+  
+  // Remove from history
+  setBoardHistory(prev => prev.slice(0, -1));
+  setActiveAreaHistory(prev => prev.slice(0, -1));
+  setScoreHistory(prev => prev.slice(0, -1));
+  setPaletteHistory(prev => prev.slice(0, -1));
+  
+  // Deduct coins
+  setCoins(prev => prev - POWERUP_COSTS.undo);
+  
+  // Set powerup state to 'undo' to prevent chaining
+  setActivePowerup('undo');
+};
 
   // Calculate preview area for a color
   const calculatePreviewArea = (color) => {
@@ -999,6 +1029,8 @@ const ColorFlood = () => {
     setBoardHistory(prev => [...prev, JSON.parse(JSON.stringify(grid))]);
     setActiveAreaHistory(prev => [...prev, JSON.parse(JSON.stringify(activeArea))]);
     setScoreHistory(prev => [...prev, score]);
+    // Add palette to history
+    setPaletteHistory(prev => [...prev, colorPalette]);
 
     // Clear preview state
     setPreviewArea([]);
@@ -1364,37 +1396,43 @@ const ColorFlood = () => {
         {/* Controls centered below */}
         <div className="controls-container">
           <div className="controls-group">
-            <button 
-              className="info-button" 
-              onClick={() => setShowInfoModal(true)} 
-              title="Game information"
-            >
-              <span>i</span>
-            </button>
-            
-            <div className="theme-toggle">
-              <span 
-                className={`theme-option ${!darkMode ? 'active' : ''}`}
-                onClick={() => setDarkMode(false)}
+            <div className="info-button-container">
+              <button 
+                className="info-button" 
+                onClick={() => setShowInfoModal(true)} 
+                title="Game information"
               >
-                Light
-              </span>
-              <span className="theme-separator">|</span>
-              <span 
-                className={`theme-option ${darkMode ? 'active' : ''}`}
-                onClick={() => setDarkMode(true)}
-              >
-                Dark
-              </span>
+                <span>i</span>
+              </button>
             </div>
             
-            <button 
-              className="audio-toggle" 
-              onClick={() => setIsMuted(!isMuted)} 
-              title={isMuted ? "Unmute audio" : "Mute audio"}
-            >
-              {isMuted ? '🔇' : '🔊'}
-            </button>
+            <div className="theme-toggle-container">
+              <div className="theme-toggle">
+                <span 
+                  className={`theme-option ${!darkMode ? 'active' : ''}`}
+                  onClick={() => setDarkMode(false)}
+                >
+                  Light
+                </span>
+                <span className="theme-separator">|</span>
+                <span 
+                  className={`theme-option ${darkMode ? 'active' : ''}`}
+                  onClick={() => setDarkMode(true)}
+                >
+                  Dark
+                </span>
+              </div>
+            </div>
+            
+            <div className="audio-toggle-container">
+              <button 
+                className="audio-toggle" 
+                onClick={() => setIsMuted(!isMuted)} 
+                title={isMuted ? "Unmute audio" : "Mute audio"}
+              >
+                {isMuted ? '🔇' : '🔊'}
+              </button>
+            </div>
           </div>
         </div>
       </>
