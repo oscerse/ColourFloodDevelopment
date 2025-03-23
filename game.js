@@ -1078,8 +1078,10 @@ const ColorFlood = () => {
             );
           })}
           
-          {/* Separator between color buttons and powerup buttons */}
-          <div className="buttons-separator"></div>
+          {/* Only show separator if we have powerups unlocked */}
+          {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
+            <div className="buttons-separator"></div>
+          )}
           
           {/* Powerup buttons */}
           {renderPowerupButtons()}
