@@ -599,6 +599,29 @@ body {
   cursor: not-allowed;
   transform: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.powerup-button:disabled::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  z-index: 2;
+}
+
+.powerup-button:disabled.undo-button::after {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 0, 0, 0.2),
+    rgba(255, 0, 0, 0.2) 5px,
+    rgba(0, 0, 0, 0.2) 5px,
+    rgba(0, 0, 0, 0.2) 10px
+  );
 }
 
 .powerup-button.active {
