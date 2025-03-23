@@ -10,55 +10,55 @@
     
     return colorsPresent;
   };  // iOS-compatible volume change function
-  const setAudioVolume = (volumeLevel) => {
-    setVolume(volumeLevel);
+  // const setAudioVolume = (volumeLevel) => {
+  //   setVolume(volumeLevel);
     
-    try {
-      if (audioRef.current) {
-        // Direct volume set attempt
-        audioRef.current.volume = volumeLevel / 100;
+  //   try {
+  //     if (audioRef.current) {
+  //       // Direct volume set attempt
+  //       audioRef.current.volume = volumeLevel / 100;
         
-        // Special handling for iOS
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS && !isMuted && audioInitialized) {
-          // Save current state
-          const currentTime = audioRef.current.currentTime;
-          const currentTrackIndex = currentTrack;
-          const wasPlaying = !audioRef.current.paused;
+  //       // Special handling for iOS
+  //       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  //       if (isIOS && !isMuted && audioInitialized) {
+  //         // Save current state
+  //         const currentTime = audioRef.current.currentTime;
+  //         const currentTrackIndex = currentTrack;
+  //         const wasPlaying = !audioRef.current.paused;
           
-          // Create a new audio element with desired volume
-          const newAudio = new Audio();
-          newAudio.src = MUSIC_TRACKS[currentTrackIndex].file;
-          newAudio.volume = volumeLevel / 100;
+  //         // Create a new audio element with desired volume
+  //         const newAudio = new Audio();
+  //         newAudio.src = MUSIC_TRACKS[currentTrackIndex].file;
+  //         newAudio.volume = volumeLevel / 100;
           
-          // Copy event listeners
-          newAudio.addEventListener('ended', playNextTrack);
-          newAudio.addEventListener('error', (e) => {
-            console.error('Audio error:', e);
-          });
+  //         // Copy event listeners
+  //         newAudio.addEventListener('ended', playNextTrack);
+  //         newAudio.addEventListener('error', (e) => {
+  //           console.error('Audio error:', e);
+  //         });
           
-          // Stop old audio
-          audioRef.current.pause();
+  //         // Stop old audio
+  //         audioRef.current.pause();
           
-          // Replace audio reference
-          audioRef.current = newAudio;
+  //         // Replace audio reference
+  //         audioRef.current = newAudio;
           
-          // Set position and play if needed
-          if (wasPlaying) {
-            audioRef.current.currentTime = currentTime;
-            const playPromise = audioRef.current.play();
-            if (playPromise) {
-              playPromise.catch(err => {
-                console.error('Error resuming after volume change:', err);
-              });
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Error setting volume:', e);
-    }
-  };  // Track skipping function (completely rewritten for mobile compatibility)
+  //         // Set position and play if needed
+  //         if (wasPlaying) {
+  //           audioRef.current.currentTime = currentTime;
+  //           const playPromise = audioRef.current.play();
+  //           if (playPromise) {
+  //             playPromise.catch(err => {
+  //               console.error('Error resuming after volume change:', err);
+  //             });
+  //           }
+  //         }
+  //       }
+  //     }
+  //   } catch (e) {
+  //     console.error('Error setting volume:', e);
+  //   }
+  // };  // Track skipping function (completely rewritten for mobile compatibility)
   const handleTrackSkip = () => {
     if (!isMuted && audioRef.current) {
       try {
@@ -233,8 +233,28 @@ const ColorFlood = () => {
 
   // Play next track when current one ends
   const playNextTrack = () => {
-    // Use the same function for both automatic and manual track skipping
-    handleTrackSkip();
+    setCurrentTrack(prevTrack => {
+      const nextTrack = (prevTrack + 1) % MUSIC_TRACKS.length;
+      
+      if (audioRef.current) {
+        audioRef.current.src = MUSIC_TRACKS[nextTrack].file;
+        
+        if (!isMuted) {
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              setNowPlaying(MUSIC_TRACKS[nextTrack].name);
+            }).catch(error => {
+              console.error("Audio play failed:", error);
+              // Try to recover by moving to next track
+              setTimeout(() => playNextTrack(), 1000);
+            });
+          }
+        }
+      }
+      
+      return nextTrack;
+    });
   };
 
   // Handle mute toggle
@@ -1078,46 +1098,52 @@ const ColorFlood = () => {
     return (
       <div className="color-buttons-container">
         <div className="color-buttons">
-          {gameColors.map((color, index) => (
-            <div key={index} className="button-wrapper">
-              {previewMultiplier && color === previewColor && previewArea.length > 0 && (
-                <div className="multiplier-indicator">
-                  {previewMultiplier}x
-                </div>
-              )}
-              <button
-                className={`color-button ${color === activeColor ? 'active' : ''} ${color === previewColor ? 'previewing' : ''} ${color === prismPreviewColor ? 'prism-target' : ''}`}
-                style={{ 
-                  backgroundColor: color,
-                  width: `${buttonSize}px`,
-                  height: `${buttonSize}px`
-                }}
-                onClick={() => handleColorClick(color)}
-                onMouseEnter={() => {
-                  if (activePowerup === 'prism') {
-                    calculatePrismPreview(color);
-                  } else {
-                    calculatePreviewArea(color);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (activePowerup === 'prism') {
-                    setPrismPreviewColor(null);
-                  } else {
-                    setPreviewArea([]);
-                    setPreviewColor(null);
-                    setPreviewMultiplier(null);
-                  }
-                }}
-                disabled={
-                  gameState !== 'playing' || 
-                  (color === activeColor && activePowerup !== 'prism') || 
-                  (!colorsOnGrid.has(color) && activePowerup !== 'prism')
-                }
-                title={!colorsOnGrid.has(color) && activePowerup !== 'prism' ? "This color is no longer on the grid" : ""}
-              />
-            </div>
-          ))}
+          {gameColors.map((color, index) => {
+            // Check if this color is present on the grid
+            const isOnGrid = colorsOnGrid.has(color);
+            // Disable button if color is not on grid (unless using prism)
+            const isDisabled = 
+              gameState !== 'playing' || 
+              (color === activeColor && activePowerup !== 'prism') || 
+              (!isOnGrid && activePowerup !== 'prism');
+            
+            return (
+              <div key={index} className="button-wrapper">
+                {previewMultiplier && color === previewColor && previewArea.length > 0 && (
+                  <div className="multiplier-indicator">
+                    {previewMultiplier}x
+                  </div>
+                )}
+                <button
+                  className={`color-button ${color === activeColor ? 'active' : ''} ${color === previewColor ? 'previewing' : ''} ${color === prismPreviewColor ? 'prism-target' : ''}`}
+                  style={{ 
+                    backgroundColor: color,
+                    width: `${buttonSize}px`,
+                    height: `${buttonSize}px`
+                  }}
+                  onClick={() => handleColorClick(color)}
+                  onMouseEnter={() => {
+                    if (activePowerup === 'prism') {
+                      calculatePrismPreview(color);
+                    } else {
+                      calculatePreviewArea(color);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (activePowerup === 'prism') {
+                      setPrismPreviewColor(null);
+                    } else {
+                      setPreviewArea([]);
+                      setPreviewColor(null);
+                      setPreviewMultiplier(null);
+                    }
+                  }}
+                  disabled={isDisabled}
+                  title={!isOnGrid && activePowerup !== 'prism' ? "This color is no longer on the grid" : ""}
+                />
+              </div>
+            );
+          })}
           
           {/* Separator between color buttons and powerup buttons */}
           <div className="buttons-separator"></div>
@@ -1397,7 +1423,7 @@ const ColorFlood = () => {
                   min="0" 
                   max="100" 
                   value={volume} 
-                  onChange={(e) => setAudioVolume(parseInt(e.target.value))}
+                  onChange={(e) => setVolume(parseInt(e.target.value))}
                   className="volume-slider"
                 />
                 <button 
