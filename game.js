@@ -1,38 +1,104 @@
-// Track skipping function completely rewritten
-  const handleTrackSkip = () => {
-    if (!isMuted) {
-      // Increment track index
-      const nextTrack = (currentTrack + 1) % MUSIC_TRACKS.length;
-      
-      // Update the track index state
-      setCurrentTrack(nextTrack);
-      
-      // Update the display name immediately
-      setNowPlaying(MUSIC_TRACKS[nextTrack].name);
-      
-      // Handle audio playback
+// Function to check which colors are present on the grid
+  const getColorsOnGrid = () => {
+    const colorsPresent = new Set();
+    
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE; col++) {
+        colorsPresent.add(grid[row][col]);
+      }
+    }
+    
+    return colorsPresent;
+  };  // iOS-compatible volume change function
+  const setAudioVolume = (volumeLevel) => {
+    setVolume(volumeLevel);
+    
+    try {
       if (audioRef.current) {
-        // Pause current track
+        // Direct volume set attempt
+        audioRef.current.volume = volumeLevel / 100;
+        
+        // Special handling for iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS && !isMuted && audioInitialized) {
+          // Save current state
+          const currentTime = audioRef.current.currentTime;
+          const currentTrackIndex = currentTrack;
+          const wasPlaying = !audioRef.current.paused;
+          
+          // Create a new audio element with desired volume
+          const newAudio = new Audio();
+          newAudio.src = MUSIC_TRACKS[currentTrackIndex].file;
+          newAudio.volume = volumeLevel / 100;
+          
+          // Copy event listeners
+          newAudio.addEventListener('ended', playNextTrack);
+          newAudio.addEventListener('error', (e) => {
+            console.error('Audio error:', e);
+          });
+          
+          // Stop old audio
+          audioRef.current.pause();
+          
+          // Replace audio reference
+          audioRef.current = newAudio;
+          
+          // Set position and play if needed
+          if (wasPlaying) {
+            audioRef.current.currentTime = currentTime;
+            const playPromise = audioRef.current.play();
+            if (playPromise) {
+              playPromise.catch(err => {
+                console.error('Error resuming after volume change:', err);
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error setting volume:', e);
+    }
+  };  // Track skipping function (completely rewritten for mobile compatibility)
+  const handleTrackSkip = () => {
+    if (!isMuted && audioRef.current) {
+      try {
+        // Stop current playback
         audioRef.current.pause();
         
-        // Set new source
-        audioRef.current.src = MUSIC_TRACKS[nextTrack].file;
+        // Calculate the next track index
+        const nextTrack = (currentTrack + 1) % MUSIC_TRACKS.length;
         
-        // Set volume (important for iOS)
-        audioRef.current.volume = volume / 100;
+        // Update UI immediately
+        setCurrentTrack(nextTrack);
+        setNowPlaying(MUSIC_TRACKS[nextTrack].name);
         
-        // Load the new track
-        audioRef.current.load();
+        // Create a completely new Audio element
+        const newAudio = new Audio();
+        newAudio.src = MUSIC_TRACKS[nextTrack].file;
+        newAudio.volume = volume / 100;
         
-        // Play the new track
+        // Copy over event listeners
+        if (audioRef.current) {
+          newAudio.addEventListener('ended', playNextTrack);
+          newAudio.addEventListener('error', (e) => {
+            console.error('Audio error:', e);
+          });
+        }
+        
+        // Replace the old audio element
+        audioRef.current = newAudio;
+        
+        // Play the new audio (with a slight delay to ensure it loads)
         setTimeout(() => {
           const playPromise = audioRef.current.play();
           if (playPromise) {
             playPromise.catch(err => {
-              console.error('Error playing next track:', err);
+              console.error('Error playing after skip:', err);
             });
           }
-        }, 50);
+        }, 100);
+      } catch (err) {
+        console.error('Error in track skip:', err);
       }
     }
   };const { useState, useEffect, useRef } = React;
@@ -1006,6 +1072,9 @@ const ColorFlood = () => {
     const isMobile = window.innerWidth <= 768;
     const buttonSize = isMobile ? 40 : 50;
     
+    // Get the set of colors currently on the grid
+    const colorsOnGrid = getColorsOnGrid();
+    
     return (
       <div className="color-buttons-container">
         <div className="color-buttons">
@@ -1040,7 +1109,12 @@ const ColorFlood = () => {
                     setPreviewMultiplier(null);
                   }
                 }}
-                disabled={gameState !== 'playing' || (color === activeColor && activePowerup !== 'prism')}
+                disabled={
+                  gameState !== 'playing' || 
+                  (color === activeColor && activePowerup !== 'prism') || 
+                  (!colorsOnGrid.has(color) && activePowerup !== 'prism')
+                }
+                title={!colorsOnGrid.has(color) && activePowerup !== 'prism' ? "This color is no longer on the grid" : ""}
               />
             </div>
           ))}
@@ -1323,7 +1397,7 @@ const ColorFlood = () => {
                   min="0" 
                   max="100" 
                   value={volume} 
-                  onChange={(e) => setVolume(parseInt(e.target.value))}
+                  onChange={(e) => setAudioVolume(parseInt(e.target.value))}
                   className="volume-slider"
                 />
                 <button 
