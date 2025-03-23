@@ -48,8 +48,8 @@ body {
 .mobile .colour-flood-game {
   width: 95%;
   max-height: 95vh;
-  padding: 10px;
-  margin-bottom: 20px;
+  padding: 8px;
+  margin-bottom: 5px;
 }
 
 .light-mode {
@@ -158,8 +158,8 @@ body {
 }
 
 .mobile .game-title {
-  font-size: 24px;
-  margin: 0 0 5px 0;
+  font-size: 22px;
+  margin: 0 0 3px 0;
 }
 
 /* GAME INFO */
@@ -172,6 +172,11 @@ body {
   border-radius: 12px;
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
+}
+
+.mobile .game-info {
+  padding: 7px;
+  margin-bottom: 5px;
 }
 
 .light-mode .game-info {
@@ -212,7 +217,11 @@ body {
 }
 
 .mobile .info-item {
-  padding: 5px;
+  padding: 3px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .dark-mode .info-item {
@@ -229,6 +238,7 @@ body {
 
 .mobile .info-label {
   font-size: 10px;
+  margin-bottom: 2px;
 }
 
 .info-value {
@@ -240,7 +250,7 @@ body {
 }
 
 .mobile .info-value {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .dark-mode .info-value {
@@ -336,6 +346,10 @@ body {
   position: relative;
   background: rgba(0, 0, 0, 0.05);
   align-self: center;
+}
+
+.mobile .grid-container {
+  margin: 5px 0;
 }
 
 .light-mode .grid-container {
@@ -453,6 +467,10 @@ body {
   box-sizing: border-box;
 }
 
+.mobile .color-buttons-container {
+  margin-bottom: 5px;
+}
+
 .color-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -463,6 +481,11 @@ body {
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
   width: 90%;
   position: relative;
+}
+
+.mobile .color-buttons {
+  padding: 8px;
+  gap: 8px;
 }
 
 .light-mode .color-buttons {
@@ -581,6 +604,16 @@ body {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: nowrap;
+}
+
+/* Make powerup buttons smaller on mobile */
+.mobile .powerup-button {
+  transform: scale(0.9);
+}
+
+.mobile .powerup-buttons {
+  gap: 5px;
 }
 
 .powerup-wrapper {
@@ -760,6 +793,11 @@ body {
   margin-top: 5px;
   margin-bottom: 10px;
   box-sizing: border-box;
+}
+
+.mobile .controls-container {
+  margin-top: 3px;
+  margin-bottom: 5px;
 }
 
 .controls-group {
