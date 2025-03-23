@@ -315,13 +315,8 @@ const ColorFlood = () => {
 
   // Effect to initialize grid when needed - separate from color/palette changes
   useEffect(() => {
-    // Only initialize if:
-    // 1. We have colors to use
-    // 2. AND either: 
-    //    a. The grid is empty (first time) OR
-    //    b. We're changing levels and need a new grid
-    if (gameColors.length > 0 && 
-        (grid.length === 0 || gameState === 'transitioning')) {
+    // Initialize grid whenever level changes or game colors change
+    if (gameColors.length > 0 && gameState !== 'transitioning') {
       initializeGrid();
     }
   }, [level, gameColors.length, gameState]);
@@ -344,6 +339,12 @@ const ColorFlood = () => {
 
   // Initialize the grid with random colors
   const initializeGrid = () => {
+    // Safety check - make sure gameColors is not empty
+    if (gameColors.length === 0) return;
+    
+    console.log("Initializing grid with colors:", gameColors);
+    
+    // Create a new grid with all available colors for the current level
     const newGrid = Array(GRID_SIZE).fill().map(() => 
       Array(GRID_SIZE).fill().map(() => 
         gameColors[Math.floor(Math.random() * gameColors.length)]
@@ -388,7 +389,6 @@ const ColorFlood = () => {
     floodFill(0, 0);
     
     setActiveArea(initialActiveArea);
-    setGameState('playing');
     
     // Reset all powerup previews
     setPreviewArea([]);
@@ -487,6 +487,10 @@ const ColorFlood = () => {
       setCoins(prev => prev + 1);
     }
     
+    // Check if this level completion unlocks a new color for the next level
+    const currentLevel = level;
+    const willUnlockNewColor = currentLevel === 5 || currentLevel === 10 || currentLevel === 15;
+    
     // Temporarily set the game state to "transitioning" to prevent win check
     setGameState('transitioning');
     
@@ -500,12 +504,28 @@ const ColorFlood = () => {
       setActiveAreaHistory([]);
       setScoreHistory([]);
       
-      // Always initialize a new grid for a new level
-      initializeGrid();
-      
-      // Explicitly set game state to playing
-      setGameState('playing');
-    }, 10);
+      // If we just unlocked a new color, we need to force a rerender
+      if (willUnlockNewColor) {
+        // Update game colors first
+        const newLevel = currentLevel + 1;
+        let numColors = 3;
+        if (newLevel > 15) numColors = 6;
+        else if (newLevel > 10) numColors = 5;
+        else if (newLevel > 5) numColors = 4;
+        
+        setGameColors(COLORS[colorPalette].slice(0, numColors));
+        
+        // Then initialize grid with short delay to ensure colors update first
+        setTimeout(() => {
+          initializeGrid();
+          setGameState('playing');
+        }, 50);
+      } else {
+        // Otherwise just initialize normally
+        initializeGrid();
+        setGameState('playing');
+      }
+    }, 50);
   };
 
   // Cycle through color palettes
