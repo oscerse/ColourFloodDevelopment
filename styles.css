@@ -812,13 +812,12 @@ body {
   justify-content: center;
   gap: 15px;
   position: relative;
-  width: 90%;
+  max-width: 300px;
   margin: 0 auto;
 }
 
 .mobile .controls-group {
   gap: 10px;
-  width: 95%;
 }
 
 .theme-toggle {
@@ -880,15 +879,30 @@ body {
   transform: scale(1.1);
 }
 
+.now-playing-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 8px 0 4px 0;
+}
+
 .now-playing {
-  margin-left: 5px;
-  font-size: 12px;
-  opacity: 0.7;
-  width: 80px;
+  font-size: 14px;
+  opacity: 0.8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   transition: opacity 0.2s;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 4px 12px;
+  border-radius: 12px;
+  max-width: 80%;
+}
+
+.dark-mode .now-playing {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .now-playing:hover {
