@@ -300,11 +300,11 @@ const ColorFlood = () => {
     // Only set moves when level changes (not on palette changes)
     setMovesLeft(levelMoves);
     
-    // New colour progression: 4th at level 5, 5th at level 10, 6th at level 15
+    // New colour progression: 4th after level 5, 5th after level 10, 6th after level 15
     let numColors = 3;
-    if (level >= 15) numColors = 6;
-    else if (level >= 10) numColors = 5;
-    else if (level >= 5) numColors = 4;
+    if (level > 15) numColors = 6;
+    else if (level > 10) numColors = 5;
+    else if (level > 5) numColors = 4;
     
     // Update colors for the current palette
     const newColors = COLORS[colorPalette].slice(0, numColors);
@@ -408,7 +408,7 @@ const ColorFlood = () => {
     setLevel(1);
     setCoins(0);
     
-    // Start with 3 colors
+    // Always start with exactly 3 colors in level 1
     const numColors = 3;
     setGameColors(COLORS[colorPalette].slice(0, numColors));
     
@@ -428,11 +428,43 @@ const ColorFlood = () => {
     // Reset game state to playing
     setGameState('playing');
     
-    // Force grid re-initialization
+    // Force grid re-initialization with exactly 3 colors
     setTimeout(() => {
       // Clear the grid first to force a complete rebuild
       setGrid([]);
-      initializeGrid();
+      
+      // Create a new grid with only 3 colors
+      const newGrid = Array(GRID_SIZE).fill().map(() => 
+        Array(GRID_SIZE).fill().map(() => 
+          COLORS[colorPalette].slice(0, 3)[Math.floor(Math.random() * 3)]
+        )
+      );
+      
+      setGrid(newGrid);
+      
+      // Initialize the active area
+      const initialActiveArea = [];
+      const visited = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(false));
+      
+      // Flood fill from top-left with the color there
+      const startColor = newGrid[0][0];
+      setActiveColor(startColor);
+      
+      const floodFill = (row, col) => {
+        if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+        if (visited[row][col] || newGrid[row][col] !== startColor) return;
+        
+        visited[row][col] = true;
+        initialActiveArea.push([row, col]);
+        
+        floodFill(row - 1, col);
+        floodFill(row, col + 1);
+        floodFill(row + 1, col);
+        floodFill(row, col - 1);
+      };
+      
+      floodFill(0, 0);
+      setActiveArea(initialActiveArea);
     }, 50);
   };
   
@@ -1363,12 +1395,23 @@ const ColorFlood = () => {
                   <>
                     <p>You cleared the level in {DEFAULT_MOVES - movesLeft} moves!</p>
                     <p>Your score: <span className="highlight-text">{score}</span></p>
+                    
+                    {/* Bonus for quick completion */}
                     {(DEFAULT_MOVES - movesLeft < 15) && (
                       <div className="bonus-container">
                         <p className="bonus-text">Score Bonus: +{movesLeft * 50}!</p>
                         <p className="bonus-text">Coin Bonus: +1 coin!</p>
                       </div>
                     )}
+                    
+                    {/* New color notification */}
+                    {(level === 5 || level === 10 || level === 15) && (
+                      <div className="new-color-notification">
+                        <p className="highlight-text">New Colour Unlocked!</p>
+                        <p>The game will now include a new colour for added challenge.</p>
+                      </div>
+                    )}
+                    
                     <button className="modal-button" onClick={startNextLevel}>Next Level</button>
                   </>
                 ) : (
