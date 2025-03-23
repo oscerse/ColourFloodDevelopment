@@ -6,13 +6,13 @@ const ColorFlood = () => {
   const DEFAULT_MOVES = 25;
   const COLORS = {
     default: ['#FF5252', '#FFEB3B', '#4CAF50', '#2196F3', '#9C27B0', '#FF9800'],
+    pastel: ['#FF9AA2', '#FFD6A5', '#CAFFBF', '#9BF6FF', '#BDB2FF', '#FFC6FF'],
+    retro: ['#FF00FF', '#00FFFF', '#FFFF00', '#0000FF', '#FF0000', '#00FF00'],
+    laci: ['#88E288', '#2E8B57', '#32CD32', '#556B2F', '#9CAF88', '#00A877'],
     beach: ['#FFDE59', '#3AB4F2', '#FF9966', '#59D8A4', '#FF6B6B', '#C490D1'],
     garden: ['#8BC34A', '#FFEB3B', '#F06292', '#9575CD', '#795548', '#4CAF50'],
     pica: ['#FF0000', '#3B4CCA', '#FFDE00', '#B3A125', '#FF65DD', '#77C74C'],
     candy: ['#FF85CB', '#1ECBE1', '#FFAA01', '#CB81FF', '#6BF178', '#FF5A5A'],
-    retro: ['#FF00FF', '#00FFFF', '#FFFF00', '#0000FF', '#FF0000', '#00FF00'],
-    laci: ['#88E288', '#2E8B57', '#32CD32', '#556B2F', '#9CAF88', '#00A877'],
-    pastel: ['#FF9AA2', '#FFD6A5', '#CAFFBF', '#9BF6FF', '#BDB2FF', '#FFC6FF'],
     monochrome: ['#FFFFFF', '#D6D6D6', '#ADADAD', '#848484', '#5B5B5B', '#333333']
   };
   const MUSIC_TRACKS = [
@@ -407,7 +407,9 @@ const ColorFlood = () => {
     setScore(0);
     setLevel(1);
     setCoins(0);
-    const numColors = 3; // Start with 3 colors
+    
+    // Start with 3 colors
+    const numColors = 3;
     setGameColors(COLORS[colorPalette].slice(0, numColors));
     
     // Reset powerup unlocks if starting from level 1
@@ -425,6 +427,13 @@ const ColorFlood = () => {
     
     // Reset game state to playing
     setGameState('playing');
+    
+    // Force grid re-initialization
+    setTimeout(() => {
+      // Clear the grid first to force a complete rebuild
+      setGrid([]);
+      initializeGrid();
+    }, 50);
   };
   
   // Give up current game
@@ -1082,7 +1091,7 @@ const ColorFlood = () => {
     );
   };
 
-  // Render color buttons
+  // Render color buttons and powerup buttons
   const renderColorButtons = () => {
     // Calculate button size based on screen size
     const isMobile = window.innerWidth <= 768;
@@ -1101,7 +1110,7 @@ const ColorFlood = () => {
     return (
       <div className="color-buttons-container">
         <div className="color-buttons">
-          {/* Color buttons row */}
+          {/* Color buttons in horizontal row */}
           <div className="buttons-row color-buttons-row">
             {gameColors.map((color, index) => {
               // Check if color is on grid
@@ -1124,7 +1133,8 @@ const ColorFlood = () => {
                     style={{ 
                       backgroundColor: color,
                       width: `${buttonSize}px`,
-                      height: `${buttonSize}px`
+                      height: `${buttonSize}px`,
+                      display: 'block'
                     }}
                     onClick={() => handleColorClick(color)}
                     onMouseEnter={() => {
@@ -1150,7 +1160,7 @@ const ColorFlood = () => {
             })}
           </div>
           
-          {/* Powerup buttons row */}
+          {/* Powerup buttons in a row below colors */}
           {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
             <div className="buttons-row powerup-buttons-row">
               {renderPowerupButtons()}
