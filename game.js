@@ -113,8 +113,8 @@ const ColorFlood = () => {
       // Add event listeners
       audioRef.current.addEventListener('ended', playNextTrack);
       
-      // Update now playing text
-      setNowPlaying(isMuted ? 'Muted' : MUSIC_TRACKS[currentTrack].name);
+      // Set initial now playing text
+      setNowPlaying(MUSIC_TRACKS[currentTrack].name);
       
       // Add error event handler to debug issues
       audioRef.current.addEventListener('error', (e) => {
@@ -182,29 +182,11 @@ const ColorFlood = () => {
   // Handle volume change
   useEffect(() => {
     if (audioRef.current) {
-      // Fix for iOS Safari volume
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      
-      if (isIOS) {
-        // For iOS, need to stop and replay the audio with new volume
-        const currentTime = audioRef.current.currentTime;
-        const wasPlaying = !audioRef.current.paused;
-        
-        audioRef.current.pause();
+      try {
+        // For all browsers
         audioRef.current.volume = volume / 100;
-        
-        if (wasPlaying) {
-          audioRef.current.currentTime = currentTime;
-          const playPromise = audioRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(error => {
-              console.error("Audio play failed after volume change:", error);
-            });
-          }
-        }
-      } else {
-        // Normal volume change for other browsers
-        audioRef.current.volume = volume / 100;
+      } catch (e) {
+        console.error("Error setting volume:", e);
       }
     }
   }, [volume]);
@@ -1263,7 +1245,7 @@ const ColorFlood = () => {
                   </p>
                 </div>
                 
-                <p className="bonus-text">+3 Bonus Coins Added!</p>
+                <p className="bonus-text" style={{ textAlign: 'center' }}>+3 Bonus Coins Added!</p>
               </div>
               <button className="modal-button" onClick={() => setShowPowerupTutorial(false)}>
                 Got it!
