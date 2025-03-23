@@ -1145,83 +1145,83 @@ const ColorFlood = () => {
 
   // Render color buttons and powerup buttons
   const renderColorButtons = () => {
-    // Calculate button size based on screen size
-    const isMobile = window.innerWidth <= 768;
-    const buttonSize = isMobile ? 40 : 50;
-    
-    // Get colors on grid (safely)
-    let colorsOnGrid = new Set();
-    try {
-      if (grid && grid.length > 0) {
-        colorsOnGrid = getColorsOnGrid();
-      }
-    } catch (e) {
-      console.error("Error getting colors on grid:", e);
+  // Calculate button size based on screen size
+  const isMobile = window.innerWidth <= 768;
+  const buttonSize = isMobile ? 40 : 50;
+  
+  // Get colors on grid (safely)
+  let colorsOnGrid = new Set();
+  try {
+    if (grid && grid.length > 0) {
+      colorsOnGrid = getColorsOnGrid();
     }
-    
-    return (
-      <div className="color-buttons-container">
-        <div className="color-buttons">
-          {/* Color buttons in horizontal row */}
-          <div className="buttons-row color-buttons-row">
-            {gameColors.map((color, index) => {
-              // Check if color is on grid
-              const isOnGrid = colorsOnGrid.has(color);
-              // Default to enabled if we couldn't compute colors on grid
-              const isDisabled = 
-                gameState !== 'playing' || 
-                (color === activeColor && activePowerup !== 'prism') || 
-                (colorsOnGrid.size > 0 && !isOnGrid && activePowerup !== 'prism');
-              
-              return (
-                <div key={index} className="button-wrapper">
-                  {previewMultiplier && color === previewColor && previewArea.length > 0 && (
-                    <div className="multiplier-indicator">
-                      {previewMultiplier}x
-                    </div>
-                  )}
-                  <button
-                    className={`color-button ${color === activeColor ? 'active' : ''} ${color === previewColor ? 'previewing' : ''} ${color === prismPreviewColor ? 'prism-target' : ''}`}
-                    style={{ 
-                      backgroundColor: color,
-                      width: `${buttonSize}px`,
-                      height: `${buttonSize}px`,
-                      display: 'block'
-                    }}
-                    onClick={() => handleColorClick(color)}
-                    onMouseEnter={() => {
-                      if (activePowerup === 'prism') {
-                        calculatePrismPreview(color);
-                      } else {
-                        calculatePreviewArea(color);
-                      }
-                    }}
-                    onMouseLeave={() => {
-                      if (activePowerup === 'prism') {
-                        setPrismPreviewColor(null);
-                      } else {
-                        setPreviewArea([]);
-                        setPreviewColor(null);
-                        setPreviewMultiplier(null);
-                      }
-                    }}
-                    disabled={isDisabled}
-                  />
-                </div>
-              );
-            })}
+  } catch (e) {
+    console.error("Error getting colors on grid:", e);
+  }
+  
+  return (
+    <div className="color-buttons-container">
+      <div className="color-buttons">
+        {/* Powerup buttons ABOVE color buttons */}
+        {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
+          <div className="buttons-row powerup-buttons-row">
+            {renderPowerupButtons()}
           </div>
-          
-          {/* Powerup buttons in a row below colors */}
-          {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
-            <div className="buttons-row powerup-buttons-row">
-              {renderPowerupButtons()}
-            </div>
-          )}
+        )}
+        
+        {/* Color buttons row BELOW powerups */}
+        <div className="buttons-row color-buttons-row">
+          {gameColors.map((color, index) => {
+            // Check if color is on grid
+            const isOnGrid = colorsOnGrid.has(color);
+            // Default to enabled if we couldn't compute colors on grid
+            const isDisabled = 
+              gameState !== 'playing' || 
+              (color === activeColor && activePowerup !== 'prism') || 
+              (colorsOnGrid.size > 0 && !isOnGrid && activePowerup !== 'prism');
+            
+            return (
+              <div key={index} className="button-wrapper">
+                {previewMultiplier && color === previewColor && previewArea.length > 0 && (
+                  <div className="multiplier-indicator">
+                    {previewMultiplier}x
+                  </div>
+                )}
+                <button
+                  className={`color-button ${color === activeColor ? 'active' : ''} ${color === previewColor ? 'previewing' : ''} ${color === prismPreviewColor ? 'prism-target' : ''}`}
+                  style={{ 
+                    backgroundColor: color,
+                    width: `${buttonSize}px`,
+                    height: `${buttonSize}px`,
+                    display: 'block'
+                  }}
+                  onClick={() => handleColorClick(color)}
+                  onMouseEnter={() => {
+                    if (activePowerup === 'prism') {
+                      calculatePrismPreview(color);
+                    } else {
+                      calculatePreviewArea(color);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (activePowerup === 'prism') {
+                      setPrismPreviewColor(null);
+                    } else {
+                      setPreviewArea([]);
+                      setPreviewColor(null);
+                      setPreviewMultiplier(null);
+                    }
+                  }}
+                  disabled={isDisabled}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   // Render powerup buttons
   const renderPowerupButtons = () => {
@@ -1494,73 +1494,59 @@ const ColorFlood = () => {
         )}
 
         {/* Info Modal with Volume Control */}
-        {showInfoModal && (
-          <div className="modal-overlay">
-            <div className="modal info-modal">
-              <h3>Game Settings & How to Play</h3>
-              
-              {/* Volume Control */}
-              <div className="volume-control">
-                <label htmlFor="volume-slider">Music Volume: {volume}%</label>
-                <input 
-                  id="volume-slider"
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  value={volume} 
-                  onChange={(e) => setVolume(parseInt(e.target.value))}
-                  className="volume-slider"
-                />
-                <button 
-                  onClick={() => setIsMuted(!isMuted)} 
-                  className="mute-toggle"
-                >
-                  {isMuted ? 'Unmute' : 'Mute'}
-                </button>
-              </div>
-              
-              <div className="info-divider"></div>
-              
-              {/* Game Rules */}
-              <div className="info-content">
-                <p><strong>Goal:</strong> Fill the entire grid with one colour using minimal moves.</p>
-                
-                <p><strong>How to Play:</strong> Click colour buttons to change the colour region.</p>
-                
-                <p><strong>Scoring:</strong></p>
-                <ul>
-                  <li>• 1 point per tile (1.5× for 10+ tiles, 2× for 20+)</li>
-                  <li>• 50 points per remaining move (if under 15 moves)</li>
-                </ul>
-                
-                <p><strong>Progression:</strong> New colours added at levels 5, 10, and 15.</p>
-                
-                {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
-                  <>
-                    <div className="info-divider"></div>
-                    <p><strong>Powerups:</strong></p>
-                    <ul>
-                      {unlockedPowerups.undo && (
-                        <li>• <strong>Undo:</strong> Revert last move (1 coin)</li>
-                      )}
-                      {unlockedPowerups.burst && (
-                        <li>• <strong>Burst:</strong> Expand to adjacent tiles (1 coin)</li>
-                      )}
-                      {unlockedPowerups.prism && (
-                        <li>• <strong>Prism:</strong> Convert all tiles of one colour (1 coin)</li>
-                      )}
-                    </ul>
-                    
-                    <p><strong>Coins:</strong> Earn 1 coin per level completed in under 15 moves</p>
-                  </>
-                )}
-              </div>
-              <button className="modal-button" onClick={() => setShowInfoModal(false)}>
-                Got it!
-              </button>
-            </div>
-          </div>
+{showInfoModal && (
+  <div className="modal-overlay">
+    <div className="modal info-modal">
+      {/* Volume Control - NO TITLE AND NO MUTE BUTTON */}
+      <div className="volume-control">
+        <label htmlFor="volume-slider">Music Volume: {volume}%</label>
+        <input 
+          id="volume-slider"
+          type="range" 
+          min="0" 
+          max="100" 
+          value={volume} 
+          onChange={(e) => setVolume(parseInt(e.target.value))}
+          className="volume-slider"
+        />
+      </div>
+      
+      <div className="info-divider"></div>
+      
+      {/* Game Rules */}
+      <div className="info-content">
+        <p><strong>Goal:</strong> Fill the grid with one colour in minimal moves.</p>
+        
+        <p><strong>Scoring:</strong> 1 point per tile (1.5× for 10+ tiles, 2× for 20+). 50 points per move remaining when under 15 moves.</p>
+        
+        <p><strong>Progression:</strong> New colours unlocked after completing levels 5, 10, and 15.</p>
+        
+        {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
+          <>
+            <div className="info-divider"></div>
+            <p><strong>Powerups:</strong></p>
+            <ul>
+              {unlockedPowerups.undo && (
+                <li>• <strong>Undo:</strong> Revert last move (1 coin)</li>
+              )}
+              {unlockedPowerups.burst && (
+                <li>• <strong>Burst:</strong> Expand to adjacent tiles (1 coin)</li>
+              )}
+              {unlockedPowerups.prism && (
+                <li>• <strong>Prism:</strong> Convert all tiles of one colour (1 coin)</li>
+              )}
+            </ul>
+            
+            <p><strong>Coins:</strong> Earn 1 coin per level completed in under 15 moves</p>
+          </>
         )}
+      </div>
+      <button className="modal-button" onClick={() => setShowInfoModal(false)}>
+        Got it!
+      </button>
+    </div>
+  </div>
+)}
       </>
     );
   };
