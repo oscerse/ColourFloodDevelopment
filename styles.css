@@ -1,4 +1,16 @@
-/* Base Styles */
+.new-color-notification {
+  background: rgba(95, 39, 205, 0.1);
+  padding: 12px;
+  border-radius: 10px;
+  margin: 15px 0;
+  border: 1px solid rgba(95, 39, 205, 0.3);
+  animation: colorPulse 2s infinite alternate;
+}
+
+@keyframes colorPulse {
+  from { box-shadow: 0 0 5px rgba(95, 39, 205, 0.2); }
+  to { box-shadow: 0 0 15px rgba(95, 39, 205, 0.4); }
+}/* Base Styles */
 body {
   margin: 0;
   padding: 0;
@@ -818,7 +830,12 @@ body {
   background: rgba(0, 0, 0, 0.05);
   padding: 4px 12px;
   border-radius: 12px;
+  width: 200px;
   max-width: 80%;
+}
+
+.mobile .now-playing {
+  width: 150px;
 }
 
 .dark-mode .now-playing {
@@ -849,14 +866,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: 20px;
   position: relative;
-  max-width: 300px;
+  width: 200px;
   margin: 0 auto;
 }
 
 .mobile .controls-group {
-  gap: 10px;
+  gap: 15px;
+  width: 150px;
 }
 
 .theme-toggle {
