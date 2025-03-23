@@ -104,29 +104,13 @@ const ColorFlood = () => {
   // Setup audio system
   const setupAudio = () => {
     if (!audioRef.current) {
-      audioRef.current = new Audio(MUSIC_TRACKS[currentTrack].file);
+      // Create audio element
+      audioRef.current = new Audio();
+      audioRef.current.src = MUSIC_TRACKS[currentTrack].file;
+      audioRef.current.volume = volume / 100;
+      audioRef.current.loop = false; // We'll handle looping manually
       
-      // Fix for iOS Safari volume
-      const setInitialVolume = () => {
-        if (audioRef.current) {
-          audioRef.current.volume = volume / 100;
-        }
-      };
-      
-      // iOS needs user interaction to change volume
-      const handleIOSVolumeChange = () => {
-        // Check if iOS
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        
-        if (isIOS) {
-          document.addEventListener('touchstart', setInitialVolume, { once: true });
-        } else {
-          setInitialVolume();
-        }
-      };
-      
-      handleIOSVolumeChange();
-      
+      // Add event listeners
       audioRef.current.addEventListener('ended', playNextTrack);
       
       // Update now playing text
@@ -137,6 +121,9 @@ const ColorFlood = () => {
         console.error('Audio error:', e);
         console.error('Failed to load:', MUSIC_TRACKS[currentTrack].file);
       });
+      
+      // Preload audio
+      audioRef.current.load();
     }
   };
 
@@ -310,13 +297,8 @@ const ColorFlood = () => {
 
   // When level changes, update number of colors with new progression
   useEffect(() => {
-    // Calculate moves for higher levels
+    // Keep moves at 25 for all levels (removed the extra moves at higher levels)
     let levelMoves = DEFAULT_MOVES;
-    if (level >= 15) {
-      levelMoves = DEFAULT_MOVES + 10; // 5 extra at level 10 + 5 more at level 15
-    } else if (level >= 10) {
-      levelMoves = DEFAULT_MOVES + 5; // 5 extra at level 10
-    }
     
     // New colour progression: 4th at level 5, 5th at level 10, 6th at level 15
     let numColors = 3;
@@ -428,11 +410,12 @@ const ColorFlood = () => {
     // Apply bonus for perfect clear (used less than 15 moves)
     const movesUsed = DEFAULT_MOVES - movesLeft;
     if (movesUsed < 15) {
-      // Add perfect clear bonus to score
-      setScore(prev => prev + 500);
+      // Add score bonus based on remaining moves (50 points per move remaining)
+      const scoreBonus = movesLeft * 50;
+      setScore(prev => prev + scoreBonus);
       
-      // Award coins for remaining moves under 15
-      setCoins(prev => prev + (15 - movesUsed));
+      // Award 1 coin for completing the level under 15 moves
+      setCoins(prev => prev + 1);
     }
     
     setLevel(prev => prev + 1);
@@ -454,17 +437,23 @@ const ColorFlood = () => {
 
   // Undo the last move
   const undoLastMove = () => {
-    if (boardHistory.length === 0 || coins < POWERUP_COSTS.undo) return;
+    if (boardHistory.length === 0 || coins < POWERUP_COSTS.undo || activePowerup === 'undo') return;
     
     // Get the previous state
-    const prevGrid = boardHistory[boardHistory.length - 1];
-    const prevActiveArea = activeAreaHistory[activeAreaHistory.length - 1];
+    const prevGrid = JSON.parse(JSON.stringify(boardHistory[boardHistory.length - 1]));
+    const prevActiveArea = [...activeAreaHistory[activeAreaHistory.length - 1]];
     const prevScore = scoreHistory[scoreHistory.length - 1];
     
     // Restore the previous state
     setGrid(prevGrid);
     setActiveArea(prevActiveArea);
-    setActiveColor(prevGrid[prevActiveArea[0][0]][prevActiveArea[0][1]]);
+    
+    // Get the color of the active area in the previous state
+    if (prevActiveArea.length > 0) {
+      const [row, col] = prevActiveArea[0];
+      setActiveColor(prevGrid[row][col]);
+    }
+    
     setScore(prevScore);
     
     // Add back a move
@@ -478,8 +467,15 @@ const ColorFlood = () => {
     // Deduct coins
     setCoins(prev => prev - POWERUP_COSTS.undo);
     
-    // Reset powerup state
-    setActivePowerup(null);
+    // Set powerup state to 'undo' to prevent chaining
+    setActivePowerup('undo');
+    
+    // Clear the powerup state after a short delay
+    setTimeout(() => {
+      if (activePowerup === 'undo') {
+        setActivePowerup(null);
+      }
+    }, 300);
   };
 
   // Calculate preview area for a color
@@ -1210,10 +1206,10 @@ const ColorFlood = () => {
                     <p>You cleared the level in {DEFAULT_MOVES - movesLeft} moves!</p>
                     <p>Your score: <span className="highlight-text">{score}</span></p>
                     {(DEFAULT_MOVES - movesLeft < 15) && (
-                      <>
-                        <p className="bonus-text">Perfect Clear Bonus: +500!</p>
-                        <p className="bonus-text">Coin Bonus: +{15 - (DEFAULT_MOVES - movesLeft)} coins!</p>
-                      </>
+                      <div className="bonus-container">
+                        <p className="bonus-text">Score Bonus: +{movesLeft * 50}!</p>
+                        <p className="bonus-text">Coin Bonus: +1 coin!</p>
+                      </div>
                     )}
                     <button className="modal-button" onClick={startNextLevel}>Next Level</button>
                   </>
@@ -1315,7 +1311,7 @@ const ColorFlood = () => {
                   <li>• 1 point per tile changed</li>
                   <li>• 1.5× bonus when changing 10+ tiles at once</li>
                   <li>• 2× bonus when changing 20+ tiles at once</li>
-                  <li>• 500 point bonus for completing in ≤15 moves</li>
+                  <li>• 50 points per move remaining when completing in ≤15 moves</li>
                 </ul>
                 
                 <p><strong>Progression:</strong> New colours added at levels 5, 10, and 15.</p>
@@ -1338,8 +1334,8 @@ const ColorFlood = () => {
                     
                     <p><strong>Earning Coins:</strong></p>
                     <ul>
-                      <li>• Complete levels with less than 15 moves: 1 coin per remaining move</li>
-                      <li>• Bonus coins when new colours or powerups are introduced</li>
+                      <li>• Complete levels with less than 15 moves: 1 coin</li>
+                      <li>• Bonus coins (3) when new colours or powerups are introduced</li>
                     </ul>
                   </>
                 )}
