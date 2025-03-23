@@ -307,12 +307,20 @@ const ColorFlood = () => {
     setMovesLeft(levelMoves);
   }, [level, colorPalette]);
 
-  // When colors change, reset the game
+  // When colors change, reset the game - but only on level changes, not palette changes
   useEffect(() => {
-    if (gameColors.length > 0) {
+    if (gameColors.length > 0 && level === 1) {
+      // Initialize for the first time
       initializeGrid();
     }
   }, [gameColors]);
+  
+  // Separate effect for handling color changes when level changes
+  useEffect(() => {
+    if (gameColors.length > 0 && level > 1) {
+      initializeGrid();
+    }
+  }, [level]);
 
   // Function to check which colors are present on the grid
   const getColorsOnGrid = () => {
@@ -445,7 +453,42 @@ const ColorFlood = () => {
     const palettes = Object.keys(COLORS);
     const currentIndex = palettes.indexOf(colorPalette);
     const nextIndex = (currentIndex + 1) % palettes.length;
-    setColorPalette(palettes[nextIndex]);
+    
+    // Apply current colors to the new palette (replace colors but keep the same game state)
+    const newPalette = palettes[nextIndex];
+    setColorPalette(newPalette);
+    
+    // Get the same number of colors from the new palette
+    const newColors = COLORS[newPalette].slice(0, gameColors.length);
+    
+    // Update game colors without triggering grid reset (handled in useEffect)
+    setGameColors(newColors);
+    
+    // Update the grid with new colors
+    updateGridColors(gameColors, newColors);
+  };
+  
+  // Update grid colors without changing the game state
+  const updateGridColors = (oldColors, newColors) => {
+    if (oldColors.length !== newColors.length || grid.length === 0) return;
+    
+    // Create a mapping from old colors to new colors
+    const colorMap = {};
+    for (let i = 0; i < oldColors.length; i++) {
+      colorMap[oldColors[i]] = newColors[i];
+    }
+    
+    // Update the grid with new colors
+    const newGrid = grid.map(row => 
+      row.map(cellColor => colorMap[cellColor] || cellColor)
+    );
+    
+    // Update active color
+    const newActiveColor = colorMap[activeColor] || activeColor;
+    
+    // Update the grid and active color
+    setGrid(newGrid);
+    setActiveColor(newActiveColor);
   };
 
   // Undo the last move
@@ -1375,39 +1418,33 @@ const ColorFlood = () => {
               <div className="info-content">
                 <p><strong>Goal:</strong> Fill the entire grid with one colour using minimal moves.</p>
                 
-                <p><strong>How to Play:</strong> Click colour buttons to change the colour region starting from top-left.</p>
+                <p><strong>How to Play:</strong> Click colour buttons to change the colour region.</p>
                 
                 <p><strong>Scoring:</strong></p>
                 <ul>
-                  <li>• 1 point per tile changed</li>
-                  <li>• 1.5× bonus when changing 10+ tiles at once</li>
-                  <li>• 2× bonus when changing 20+ tiles at once</li>
-                  <li>• 50 points per move remaining when completing in ≤15 moves</li>
+                  <li>• 1 point per tile (1.5× for 10+ tiles, 2× for 20+)</li>
+                  <li>• 50 points per remaining move (if under 15 moves)</li>
                 </ul>
                 
                 <p><strong>Progression:</strong> New colours added at levels 5, 10, and 15.</p>
                 
-                {level >= POWERUP_UNLOCK_LEVELS.undo && (
+                {(unlockedPowerups.undo || unlockedPowerups.burst || unlockedPowerups.prism) && (
                   <>
                     <div className="info-divider"></div>
                     <p><strong>Powerups:</strong></p>
                     <ul>
                       {unlockedPowerups.undo && (
-                        <li>• <strong>Undo (1 coin):</strong> Revert the board to its previous state, restore a move</li>
+                        <li>• <strong>Undo:</strong> Revert last move (1 coin)</li>
                       )}
                       {unlockedPowerups.burst && (
-                        <li>• <strong>Burst (1 coin):</strong> Convert all tiles adjacent to the active area AND all connected tiles of the same colour</li>
+                        <li>• <strong>Burst:</strong> Expand to adjacent tiles (1 coin)</li>
                       )}
                       {unlockedPowerups.prism && (
-                        <li>• <strong>Prism (1 coin):</strong> Convert all tiles of one colour to your active area's colour across the entire board</li>
+                        <li>• <strong>Prism:</strong> Convert all tiles of one colour (1 coin)</li>
                       )}
                     </ul>
                     
-                    <p><strong>Earning Coins:</strong></p>
-                    <ul>
-                      <li>• Complete levels with less than 15 moves: 1 coin</li>
-                      <li>• Bonus coins (3) when new colours or powerups are introduced</li>
-                    </ul>
+                    <p><strong>Coins:</strong> Earn 1 coin per level completed in under 15 moves</p>
                   </>
                 )}
               </div>
