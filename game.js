@@ -1,17 +1,38 @@
-// Skip to next track
-  const skipToNextTrack = () => {
-    if (!isMuted && audioRef.current) {
+// Track skipping function completely rewritten
+  const handleTrackSkip = () => {
+    if (!isMuted) {
+      // Increment track index
       const nextTrack = (currentTrack + 1) % MUSIC_TRACKS.length;
-      audioRef.current.src = MUSIC_TRACKS[nextTrack].file;
-      audioRef.current.load();
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          setCurrentTrack(nextTrack);
-          setNowPlaying(MUSIC_TRACKS[nextTrack].name);
-        }).catch(error => {
-          console.error("Error playing next track:", error);
-        });
+      
+      // Update the track index state
+      setCurrentTrack(nextTrack);
+      
+      // Update the display name immediately
+      setNowPlaying(MUSIC_TRACKS[nextTrack].name);
+      
+      // Handle audio playback
+      if (audioRef.current) {
+        // Pause current track
+        audioRef.current.pause();
+        
+        // Set new source
+        audioRef.current.src = MUSIC_TRACKS[nextTrack].file;
+        
+        // Set volume (important for iOS)
+        audioRef.current.volume = volume / 100;
+        
+        // Load the new track
+        audioRef.current.load();
+        
+        // Play the new track
+        setTimeout(() => {
+          const playPromise = audioRef.current.play();
+          if (playPromise) {
+            playPromise.catch(err => {
+              console.error('Error playing next track:', err);
+            });
+          }
+        }, 50);
       }
     }
   };const { useState, useEffect, useRef } = React;
@@ -146,28 +167,8 @@ const ColorFlood = () => {
 
   // Play next track when current one ends
   const playNextTrack = () => {
-    setCurrentTrack(prevTrack => {
-      const nextTrack = (prevTrack + 1) % MUSIC_TRACKS.length;
-      
-      if (audioRef.current) {
-        audioRef.current.src = MUSIC_TRACKS[nextTrack].file;
-        
-        if (!isMuted) {
-          const playPromise = audioRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              setNowPlaying(MUSIC_TRACKS[nextTrack].name);
-            }).catch(error => {
-              console.error("Audio play failed:", error);
-              // Try to recover by moving to next track
-              setTimeout(() => playNextTrack(), 1000);
-            });
-          }
-        }
-      }
-      
-      return nextTrack;
-    });
+    // Use the same function for both automatic and manual track skipping
+    handleTrackSkip();
   };
 
   // Handle mute toggle
@@ -1212,8 +1213,11 @@ const ColorFlood = () => {
           
           <div 
             className="now-playing" 
-            onClick={skipToNextTrack} 
-            style={{ cursor: !isMuted ? 'pointer' : 'default' }} 
+            onClick={handleTrackSkip} 
+            style={{ 
+              cursor: !isMuted ? 'pointer' : 'default',
+              textDecoration: !isMuted ? 'underline' : 'none'
+            }} 
             title={!isMuted ? "Click to skip to next track" : ""}
           >
             {nowPlaying}
