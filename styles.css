@@ -222,7 +222,7 @@ body {
 
 .mobile .info-item {
   padding: 3px;
-  height: 45px;
+  height: 40px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -869,10 +869,12 @@ body {
   position: relative;
   width: 200px;
   margin: 0 auto;
+  gap: 10px;
 }
 
 .mobile .controls-group {
   width: 150px;
+  gap: 8px;
 }
 
 .theme-toggle {
