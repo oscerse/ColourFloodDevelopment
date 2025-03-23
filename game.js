@@ -421,9 +421,9 @@ const ColorFlood = () => {
   const undoLastMove = () => {
     if (boardHistory.length === 0 || coins < POWERUP_COSTS.undo || activePowerup === 'undo') return;
     
-    // Get the previous state
+    // Get the previous state - ensure we have a deep copy
     const prevGrid = JSON.parse(JSON.stringify(boardHistory[boardHistory.length - 1]));
-    const prevActiveArea = [...activeAreaHistory[activeAreaHistory.length - 1]];
+    const prevActiveArea = JSON.parse(JSON.stringify(activeAreaHistory[activeAreaHistory.length - 1]));
     const prevScore = scoreHistory[scoreHistory.length - 1];
     
     // Restore the previous state
@@ -451,13 +451,6 @@ const ColorFlood = () => {
     
     // Set powerup state to 'undo' to prevent chaining
     setActivePowerup('undo');
-    
-    // Clear the powerup state after a short delay
-    setTimeout(() => {
-      if (activePowerup === 'undo') {
-        setActivePowerup(null);
-      }
-    }, 300);
   };
 
   // Calculate preview area for a color
@@ -809,9 +802,9 @@ const ColorFlood = () => {
     // Don't do anything if clicking the current color
     if (color === activeColor) return;
 
-    // Save current state to history
+    // Save current state to history - use deep copies
     setBoardHistory(prev => [...prev, JSON.parse(JSON.stringify(grid))]);
-    setActiveAreaHistory(prev => [...prev, [...activeArea]]);
+    setActiveAreaHistory(prev => [...prev, JSON.parse(JSON.stringify(activeArea))]);
     setScoreHistory(prev => [...prev, score]);
 
     // Clear preview state
@@ -825,8 +818,8 @@ const ColorFlood = () => {
     // Change active color
     setActiveColor(color);
 
-    // First pass: Update grid and get initial active area
-    const newGrid = [...grid];
+    // First pass: Update grid and get initial active area (make a deep copy)
+    const newGrid = JSON.parse(JSON.stringify(grid));
     for (const [row, col] of activeArea) {
       newGrid[row][col] = color;
     }
@@ -872,6 +865,9 @@ const ColorFlood = () => {
     
     setScore(prev => prev + scoreIncrease);
     setActiveArea(newActiveArea);
+    
+    // Reset the undo powerup state after a normal move
+    setActivePowerup(null);
     
     // Check win condition
     if (newActiveArea.length === GRID_SIZE * GRID_SIZE) {
