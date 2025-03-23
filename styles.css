@@ -860,19 +860,41 @@ body {
 }
 
 .controls-group {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  position: relative;
-  width: 200px;
+  width: 100%;
+  max-width: 300px;
   margin: 0 auto;
-  gap: 10px;
 }
 
 .mobile .controls-group {
-  width: 170px;
-  justify-content: space-between;
-  margin: 0 auto;
+  max-width: 220px;
+}
+
+.info-button-container {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 15px;
+}
+
+.mobile .info-button-container {
+  padding-right: 10px;
+}
+
+.theme-toggle-container {
+  display: flex;
+  justify-content: center;
+}
+
+.audio-toggle-container {
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 15px;
+}
+
+.mobile .audio-toggle-container {
+  padding-left: 10px;
 }
 
 .theme-toggle {
