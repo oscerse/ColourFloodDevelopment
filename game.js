@@ -1,4 +1,9 @@
-const { useState, useEffect, useRef } = React;
+// Skip to next track
+  const skipToNextTrack = () => {
+    if (!isMuted && audioRef.current) {
+      playNextTrack();
+    }
+  };const { useState, useEffect, useRef } = React;
 
 const ColorFlood = () => {
   // Game constants
@@ -26,14 +31,14 @@ const ColorFlood = () => {
   // Powerup constants
   const POWERUP_COSTS = {
     undo: 1,
-    burst: 5,
-    prism: 10
+    burst: 1,
+    prism: 1
   };
   
   const POWERUP_UNLOCK_LEVELS = {
     undo: 3,
-    burst: 7,
-    prism: 12
+    burst: 4,
+    prism: 5
   };
 
   // Game state
@@ -605,7 +610,7 @@ const ColorFlood = () => {
 
   // Use burst powerup
   const useBurstPowerup = () => {
-    if (gameState !== 'playing' || coins < POWERUP_COSTS.burst) return;
+    if (gameState !== 'playing' || coins < POWERUP_COSTS.burst || activePowerup === 'undo') return;
     
     // Calculate burst area if not already calculated
     if (burstPreviewArea.length === 0) {
@@ -646,8 +651,8 @@ const ColorFlood = () => {
     // Reset burst preview
     setBurstPreviewArea([]);
     
-    // Reset powerup state
-    setActivePowerup(null);
+    // Set powerup state to prevent Undo
+    setActivePowerup('used-powerup');
     
     // Check win condition
     checkWinCondition(newGrid, newActiveArea);
@@ -655,7 +660,7 @@ const ColorFlood = () => {
 
   // Use prism powerup
   const usePrismPowerup = (color) => {
-    if (gameState !== 'playing' || coins < POWERUP_COSTS.prism || color === activeColor) return;
+    if (gameState !== 'playing' || coins < POWERUP_COSTS.prism || color === activeColor || activePowerup === 'undo') return;
     
     // Apply prism powerup
     const newGrid = JSON.parse(JSON.stringify(grid));
@@ -735,8 +740,8 @@ const ColorFlood = () => {
     setPrismPreviewColor(null);
     setPrismPreviewAreas({});
     
-    // Reset powerup state
-    setActivePowerup(null);
+    // Set powerup state to prevent Undo
+    setActivePowerup('used-powerup');
     
     // Check win condition
     checkWinCondition(newGrid, recalculatedActiveArea);
@@ -1161,7 +1166,7 @@ const ColorFlood = () => {
             {isMuted ? '🔇' : '🔊'}
           </button>
           
-          <div className="now-playing">
+          <div className="now-playing" onClick={skipToNextTrack} style={{ cursor: !isMuted ? 'pointer' : 'default' }} title={!isMuted ? "Click to skip to next track" : ""}>
             {nowPlaying}
           </div>
         </div>
