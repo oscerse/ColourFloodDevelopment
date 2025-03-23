@@ -1,7 +1,18 @@
 // Skip to next track
   const skipToNextTrack = () => {
     if (!isMuted && audioRef.current) {
-      playNextTrack();
+      const nextTrack = (currentTrack + 1) % MUSIC_TRACKS.length;
+      audioRef.current.src = MUSIC_TRACKS[nextTrack].file;
+      audioRef.current.load();
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setCurrentTrack(nextTrack);
+          setNowPlaying(MUSIC_TRACKS[nextTrack].name);
+        }).catch(error => {
+          console.error("Error playing next track:", error);
+        });
+      }
     }
   };const { useState, useEffect, useRef } = React;
 
@@ -21,6 +32,7 @@ const ColorFlood = () => {
     monochrome: ['#FFFFFF', '#D6D6D6', '#ADADAD', '#848484', '#5B5B5B', '#333333']
   };
   const MUSIC_TRACKS = [
+    { file: 'audio/Jaunt.mp3', name: 'Jaunt' },
     { file: 'audio/Pixel.mp3', name: 'Pixel' },
     { file: 'audio/Serene.mp3', name: 'Serene' },
     { file: 'audio/RetroPulse.mp3', name: 'RetroPulse' },
@@ -424,7 +436,13 @@ const ColorFlood = () => {
 
   // Undo the last move
   const undoLastMove = () => {
-    if (boardHistory.length === 0 || coins < POWERUP_COSTS.undo || activePowerup === 'undo') return;
+    // Check if we can undo
+    if (boardHistory.length === 0 || 
+        coins < POWERUP_COSTS.undo || 
+        activePowerup === 'undo' || 
+        activePowerup === 'used-powerup') {
+      return;
+    }
     
     // Get the previous state - ensure we have a deep copy
     const prevGrid = JSON.parse(JSON.stringify(boardHistory[boardHistory.length - 1]));
@@ -620,30 +638,56 @@ const ColorFlood = () => {
     
     // Apply burst powerup
     const newGrid = JSON.parse(JSON.stringify(grid));
-    const newActiveArea = [...activeArea];
     
     // Change all burst area tiles to active color
     for (const [row, col] of burstPreviewArea) {
       newGrid[row][col] = activeColor;
-      newActiveArea.push([row, col]);
     }
+    
+    // Now we need to recalculate the active area completely using flood fill
+    // to ensure all connected tiles of the same color are included
+    const newActiveArea = [];
+    const visited = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(false));
+    
+    // Flood fill algorithm (DFS)
+    const floodFill = (row, col) => {
+      // Check bounds
+      if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+      
+      // Check if already visited or color doesn't match active color
+      if (visited[row][col] || newGrid[row][col] !== activeColor) return;
+      
+      // Mark as visited and add to active area
+      visited[row][col] = true;
+      newActiveArea.push([row, col]);
+      
+      // Check neighbors (up, right, down, left)
+      floodFill(row - 1, col);
+      floodFill(row, col + 1);
+      floodFill(row + 1, col);
+      floodFill(row, col - 1);
+    };
+    
+    // Start flood fill from top-left corner
+    floodFill(0, 0);
     
     // Update the grid and active area
     setGrid(newGrid);
     setActiveArea(newActiveArea);
     
     // Calculate score based on new tiles added
-    const scoreIncrease = burstPreviewArea.length;
+    const previousActiveAreaSize = activeArea.length;
+    const newTiles = newActiveArea.length - previousActiveAreaSize;
+    let scoreIncrease = newTiles;
     
     // Add combo multiplier for large areas
-    let finalScoreIncrease = scoreIncrease;
-    if (scoreIncrease > 20) {
-      finalScoreIncrease = Math.floor(scoreIncrease * 2);
-    } else if (scoreIncrease > 10) {
-      finalScoreIncrease = Math.floor(scoreIncrease * 1.5);
+    if (newTiles > 20) {
+      scoreIncrease = Math.floor(newTiles * 2);
+    } else if (newTiles > 10) {
+      scoreIncrease = Math.floor(newTiles * 1.5);
     }
     
-    setScore(prev => prev + finalScoreIncrease);
+    setScore(prev => prev + scoreIncrease);
     
     // Deduct coins
     setCoins(prev => prev - POWERUP_COSTS.burst);
@@ -1158,7 +1202,7 @@ const ColorFlood = () => {
             </span>
           </div>
           
-          <button 
+          <button
             className="audio-toggle" 
             onClick={() => setIsMuted(!isMuted)} 
             title={isMuted ? "Unmute audio" : "Mute audio"}
@@ -1166,7 +1210,12 @@ const ColorFlood = () => {
             {isMuted ? '🔇' : '🔊'}
           </button>
           
-          <div className="now-playing" onClick={skipToNextTrack} style={{ cursor: !isMuted ? 'pointer' : 'default' }} title={!isMuted ? "Click to skip to next track" : ""}>
+          <div 
+            className="now-playing" 
+            onClick={skipToNextTrack} 
+            style={{ cursor: !isMuted ? 'pointer' : 'default' }} 
+            title={!isMuted ? "Click to skip to next track" : ""}
+          >
             {nowPlaying}
           </div>
         </div>
